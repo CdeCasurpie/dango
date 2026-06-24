@@ -174,7 +174,7 @@ function playPlop() {
 
 let particles = [];
 function createExplosion(x, y, hue) {
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 15; i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = Math.random() * 5 + 2;
         particles.push({
