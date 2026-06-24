@@ -143,6 +143,52 @@ const stars = Array.from({length:250}, () => ({
 }));
 
 // ══════════════════════════════════════════════
+//  AUDIO Y EFECTOS
+// ══════════════════════════════════════════════
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+const audioCtx = new AudioContext();
+
+function playPlop() {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    osc.type = 'sine';
+    const now = audioCtx.currentTime;
+    
+    // Caída rápida de frecuencia para el "plop"
+    osc.frequency.setValueAtTime(600, now);
+    osc.frequency.exponentialRampToValueAtTime(150, now + 0.1);
+    
+    // Volumen (fade in muy rápido, luego fade out)
+    gainNode.gain.setValueAtTime(0, now);
+    gainNode.gain.linearRampToValueAtTime(0.5, now + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    osc.start(now);
+    osc.stop(now + 0.15);
+}
+
+let particles = [];
+function createExplosion(x, y, hue) {
+    for (let i = 0; i < 20; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 5 + 2;
+        particles.push({
+            x: x, y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 1.0,
+            hue: hue,
+            size: Math.random() * 5 + 3
+        });
+    }
+}
+
+// ══════════════════════════════════════════════
 //  SOFT-BODY: sistema de resortes por vértices
 // ══════════════════════════════════════════════
 // Cada slime tiene N puntos de control alrededor de un cuadrado redondeado.
@@ -331,7 +377,12 @@ function connectWS() {
                 }
             }
             for (const id in players) {
-                if (!data.players[id]) delete players[id];
+                if (!data.players[id]) {
+                    const p = players[id];
+                    createExplosion(p.sx, p.sy, p.hue);
+                    playPlop();
+                    delete players[id];
+                }
             }
         }
     };
@@ -352,6 +403,7 @@ function doJoin() {
     if (ws && ws.readyState===1 && myId) ws.send(JSON.stringify({type:"name", name:myName}));
     overlay.classList.add("hidden");
     joined = true;
+    if (audioCtx.state === 'suspended') audioCtx.resume(); // Activar audio on click
 }
 joinBtn.addEventListener("click", doJoin);
 nameInput.addEventListener("keydown", e => { if(e.key==="Enter") doJoin(); });
@@ -660,6 +712,26 @@ function loop(now) {
 
     // Dibujar nombres en una pasada adicional para que estén por encima de todo
     for (const id of sortedIds) drawName(players[id], id===myId);
+
+    // ── Partículas (Explosión) ──
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vx *= 0.92;
+        p.vy *= 0.92;
+        p.life -= 0.04 * dt;
+        if (p.life <= 0) {
+            particles.splice(i, 1);
+        } else {
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = `hsl(${p.hue}, 70%, 75%)`;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI*2);
+            ctx.fill();
+        }
+    }
+    ctx.globalAlpha = 1;
 
     ctx.restore();
 
