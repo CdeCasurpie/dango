@@ -281,7 +281,13 @@ function connectWS() {
             const pName = p ? p.name : "???";
             const el = document.createElement("div");
             el.className = "chat-msg";
-            el.innerHTML = `<strong>${pName}:</strong> ${data.msg}`;
+            
+            // Protección contra XSS (Inyección de JavaScript/HTML)
+            const strong = document.createElement("strong");
+            strong.textContent = pName + ":";
+            el.appendChild(strong);
+            el.appendChild(document.createTextNode(" " + data.msg));
+            
             chatContainer.appendChild(el);
             setTimeout(() => el.remove(), 5000);
             if (p) {
