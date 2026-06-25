@@ -94,6 +94,28 @@ canvas { display:block; }
     border-radius:8px; color:#fff; padding:8px 12px; font-family:'Outfit',sans-serif;
     font-size:13px; outline:none;
 }
+
+.instructions {
+    margin-top: 24px; display: flex; flex-direction: column; gap: 8px;
+    font-size: 0.9rem; color: rgba(200, 200, 230, 0.45);
+}
+.instructions span { display: block; }
+
+#mobile-chat-btn {
+    position: absolute; bottom: 20px; right: 20px; width: 50px; height: 50px;
+    border-radius: 25px; background: rgba(99, 102, 241, 0.25);
+    border: 1px solid rgba(124, 58, 237, 0.4); color: white; font-size: 20px;
+    display: none; align-items: center; justify-content: center;
+    z-index: 6; cursor: pointer; backdrop-filter: blur(4px);
+    transition: background 0.2s;
+}
+#mobile-chat-btn:active { background: rgba(99, 102, 241, 0.5); }
+
+@media (max-width: 768px) {
+    #mobile-chat-btn { display: flex; }
+    #chat-input-wrapper.active ~ #mobile-chat-btn { display: none; }
+    #chat-input-wrapper, #chat-container { width: calc(100vw - 40px); }
+}
 </style>
 </head>
 <body>
@@ -104,10 +126,16 @@ canvas { display:block; }
         <p>Elige tu nombre y entra al mundo</p>
         <input id="name-input" type="text" placeholder="Tu nombre..." maxlength="16" autocomplete="off"/>
         <button id="join-btn">Entrar</button>
+        <div class="instructions">
+            <span>🖱️ Clic/Tocar para moverte</span>
+            <span>💬 Tecla '/' o Botón para chatear</span>
+            <span>💥 ¡Choca para rebotar!</span>
+        </div>
     </div>
 </div>
 <div id="chat-container"></div>
 <div id="chat-input-wrapper"><input id="chat-input" type="text" maxlength="60" autocomplete="off" placeholder="Escribe un mensaje..."/></div>
+<button id="mobile-chat-btn">💬</button>
 <canvas id="c"></canvas>
 
 <script>
@@ -128,6 +156,7 @@ const joinBtn = document.getElementById("join-btn");
 const chatContainer = document.getElementById("chat-container");
 const chatInputWrapper = document.getElementById("chat-input-wrapper");
 const chatInput = document.getElementById("chat-input");
+const mobileChatBtn = document.getElementById("mobile-chat-btn");
 
 function resize() { w = c.width = innerWidth; h = c.height = innerHeight; }
 window.addEventListener("resize", resize);
@@ -195,42 +224,27 @@ function createExplosion(x, y, hue) {
 // Cada punto tiene posición actual, velocidad, y posición de reposo.
 // Un resorte tira cada punto hacia su reposo → efecto jelly.
 
-const SB_POINTS = 16;        // más puntos = curva más suave
-const SB_SIZE = 24;          // mitad del tamaño del cuadrado
-const SB_RADIUS = 10;        // radio de las esquinas
+const SB_POINTS = 24;        // más puntos = curva más suave
+const SB_SIZE = 26;          // mitad del tamaño del cuadrado
 const SB_STIFFNESS = 0.3;    // rigidez alta → regresa rápido
 const SB_DAMPING = 0.72;     // amortiguación fuerte
 const SB_MAX_DISP = 6;       // desplazamiento máximo desde reposo
 
-// Generar posiciones de reposo: cuadrado redondeado
+// Generar posiciones de reposo: Superelipse (Cuadrado perfectamente redondeado)
 function generateRestShape() {
-    // Crear un rounded-rect como polígono con SB_POINTS puntos
     const pts = [];
     const s = SB_SIZE;
-    const r = SB_RADIUS;
-
-    // Esquinas: top-right, bottom-right, bottom-left, top-left
-    const corners = [
-        {cx: s-r, cy: -(s-r), startA: -Math.PI/2, endA: 0},
-        {cx: s-r, cy: s-r,    startA: 0,           endA: Math.PI/2},
-        {cx: -(s-r), cy: s-r, startA: Math.PI/2,   endA: Math.PI},
-        {cx: -(s-r), cy: -(s-r), startA: Math.PI,  endA: Math.PI*1.5}
-    ];
-
-    const ptsPerCorner = Math.floor(SB_POINTS / 4);
-    const extra = SB_POINTS - ptsPerCorner * 4;
-
-    for (let ci = 0; ci < 4; ci++) {
-        const c = corners[ci];
-        const n = ptsPerCorner + (ci < extra ? 1 : 0);
-        for (let i = 0; i < n; i++) {
-            const t = i / n;
-            const angle = c.startA + (c.endA - c.startA) * t;
-            pts.push({
-                rx: c.cx + Math.cos(angle) * r,
-                ry: c.cy + Math.sin(angle) * r
-            });
-        }
+    const n = 3.0; // 2 = círculo, 4 = cuadrado muy marcado. 3.0 es un punto medio perfecto y tierno.
+    
+    for (let i = 0; i < SB_POINTS; i++) {
+        const angle = (i / SB_POINTS) * Math.PI * 2;
+        const cosA = Math.cos(angle);
+        const sinA = Math.sin(angle);
+        
+        const x = Math.pow(Math.abs(cosA), 2/n) * s * Math.sign(cosA);
+        const y = Math.pow(Math.abs(sinA), 2/n) * s * Math.sign(sinA);
+        
+        pts.push({ rx: x, ry: y });
     }
     return pts;
 }
@@ -431,6 +445,17 @@ window.addEventListener("keydown", e => {
 });
 chatInputWrapper.addEventListener("pointerdown", e => e.stopPropagation());
 
+mobileChatBtn.addEventListener("pointerdown", e => {
+    e.stopPropagation();
+    chatInputWrapper.classList.add("active");
+    chatInput.value = "";
+    chatInput.focus();
+});
+
+chatInput.addEventListener("blur", () => {
+    chatInputWrapper.classList.remove("active");
+});
+
 function sendTarget(tx, ty) {
     if (ws && ws.readyState===1 && joined) ws.send(JSON.stringify({type:"input", tx, ty}));
 }
@@ -458,14 +483,19 @@ function drawSlime(p, isMe) {
     ctx.translate(px, py);
 
     // ── Cuerpo soft-body ──
-    // Color base + gradiente sutil
+    // Color base + gradiente sutil (colores pastel)
     const bodyGrad = ctx.createLinearGradient(0, -SB_SIZE, 0, SB_SIZE);
-    bodyGrad.addColorStop(0, `hsl(${p.hue}, 65%, 72%)`);
-    bodyGrad.addColorStop(1, `hsl(${p.hue}, 60%, 52%)`);
+    bodyGrad.addColorStop(0, `hsl(${p.hue}, 55%, 80%)`);
+    bodyGrad.addColorStop(1, `hsl(${p.hue}, 50%, 65%)`);
 
     ctx.fillStyle = bodyGrad;
     drawSoftBodyPath(p.body);
     ctx.fill();
+    
+    // Borde del cuerpo (mismo color pero más oscuro)
+    ctx.strokeStyle = `hsl(${p.hue}, 45%, 45%)`;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
 
     // ── Brillo sutil (highlight) ──
     ctx.globalAlpha = 0.18;
