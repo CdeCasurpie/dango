@@ -51,7 +51,7 @@ def generate_rest_shape():
 
 REST_SHAPE = generate_rest_shape()
 
-class Slime:
+class Dango:
     def __init__(self, pid):
         self.id = pid
         self.x = 0; self.y = 0; self.dx = 0; self.dy = 0
@@ -157,7 +157,7 @@ async def main():
     pygame.init()
     pygame.mixer.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
-    pygame.display.set_caption("Slime World")
+    pygame.display.set_caption("Dango World")
     clock = pygame.time.Clock()
     
     plop_sound = create_plop_sound()
@@ -204,7 +204,7 @@ async def main():
                             elif t == "state":
                                 for k, v in data["players"].items():
                                     if k not in players:
-                                        players[k] = Slime(k)
+                                        players[k] = Dango(k)
                                         players[k].sx, players[k].sy = v["x"], v["y"]
                                     p = players[k]
                                     p.x, p.y, p.dx, p.dy = v["x"], v["y"], v["dx"], v["dy"]
@@ -395,7 +395,7 @@ async def main():
             screen.blit(box, (bx, by))
             
             pygame.draw.circle(screen, hex_to_rgb("#818cf8"), (w//2 - 95, by + 56), 10)
-            draw_gradient_text(screen, "Slime World", f_title, (w//2 - 70, by + 40), hex_to_rgb("#a78bfa"), hex_to_rgb("#60a5fa"), hex_to_rgb("#34d399"))
+            draw_gradient_text(screen, "Dango World", f_title, (w//2 - 70, by + 40), hex_to_rgb("#a78bfa"), hex_to_rgb("#60a5fa"), hex_to_rgb("#34d399"))
             
             sub = f_p.render("Elige tu nombre y entra al mundo", True, (160, 160, 190))
             screen.blit(sub, (w//2 - sub.get_width()//2, by + 95))
@@ -427,7 +427,7 @@ async def main():
 
         elif state == "PLAYING":
             active_p = sum(1 for p in players.values() if p.name != "???")
-            slimes_txt = f_small.render(f"{active_p} slime{'s' if active_p!=1 else ''} online", True, (150, 150, 170))
+            slimes_txt = f_small.render(f"{active_p} dango{'s' if active_p!=1 else ''} online", True, (150, 150, 170))
             screen.blit(slimes_txt, (20, 20))
             
             curr_time = time.time()

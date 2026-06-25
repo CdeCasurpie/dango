@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Dango World - Multiplatform Space Adventure</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
+
+:root {
+    --bg-dark: #060612;
+    --primary: #93f3b6;
+    --primary-hover: #72e99d;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --panel-bg: rgba(255, 255, 255, 0.03);
+    --panel-border: rgba(255, 255, 255, 0.08);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { 
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Outfit', sans-serif;
+    overflow-x: hidden;
+}
+
+html {
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+}
+
+/* Canvas Background */
+#bg-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+}
+
+/* Start Curtain */
+#start-curtain {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+    backdrop-filter: blur(8px);
+}
+#start-curtain span {
+    font-size: 1.8rem;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.9);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    animation: pulseText 2s infinite;
+}
+@keyframes pulseText {
+    0% { opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { opacity: 0.3; }
+}
+.curtain-hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* Navbar */
+nav {
+    position: fixed;
+    top: 0; left: 0; width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 64px;
+    z-index: 100;
+    background: rgba(6, 6, 18, 0.6);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--panel-border);
+    transition: padding 0.3s;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.4rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.5px;
+    color: #fff;
+    text-decoration: none;
+}
+.logo-icon { font-size: 2rem; filter: drop-shadow(0 0 10px rgba(255,180,200,0.5)); }
+.logo-text { display: flex; flex-direction: column; }
+
+.nav-links { display: flex; gap: 32px; }
+.nav-links a {
+    color: var(--text-main);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    transition: color 0.2s;
+    text-transform: uppercase;
+}
+.nav-links a:hover { color: var(--primary); }
+
+/* Main layout for sections */
+section {
+    min-height: 100vh;
+    padding: 120px 64px 80px 64px;
+    max-width: 1400px;
+    margin: 0 auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+}
+
+/* Common Section Titles */
+.section-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #a78bfa, #60a5fa, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 24px;
+    display: inline-block;
+}
+
+/* --- HERO SECTION --- */
+.hero {
+    flex-direction: row;
+    align-items: center;
+    gap: 60px;
+}
+.hero-content { flex: 1; max-width: 600px; z-index: 2; }
+
+.hero h1 {
+    font-size: 4rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 24px;
+    color: #fff;
+    text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.subtitle {
+    font-size: 1.25rem;
+    color: var(--text-muted);
+    margin-bottom: 40px;
+    line-height: 1.6;
+}
+.subtitle strong { color: #cbd5e1; }
+
+/* Buttons */
+.play-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #93f3b6;
+    color: #064e3b;
+    padding: 12px 28px;
+    border-radius: 100px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 0 25px rgba(147, 243, 182, 0.25);
+    margin-bottom: 40px;
+}
+.play-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 40px rgba(147, 243, 182, 0.4);
+}
+
+.download-section {
+    position: relative;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.download-divider {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 16px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+.download-divider::before, .download-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--panel-border);
+    margin: 0 16px;
+}
+
+.os-buttons { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+.os-btn {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--panel-bg); border: 1px solid var(--panel-border);
+    padding: 12px 20px; border-radius: 12px; color: var(--text-main);
+    text-decoration: none; font-size: 0.85rem; font-weight: 600;
+    transition: background 0.2s, border-color 0.2s;
+}
+.os-btn:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.3); }
+.os-btn span { display: flex; flex-direction: column; text-align: left; line-height: 1.2; }
+.os-btn span small { font-size: 0.7rem; color: var(--text-muted); font-weight: 400; }
+
+.hero-image-container { flex: 1; display: flex; justify-content: center; align-items: center; }
+.hero-image { width: 100%; max-width: 650px; z-index: 1; }
+
+/* --- ABOUT SECTION --- */
+.about {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+}
+.about-glass {
+    flex: 0 1 800px;
+    background: transparent;
+    text-align: right;
+    z-index: 2;
+}
+.about-glass .section-title {
+    font-size: 3.5rem;
+    line-height: 1.1;
+    background: linear-gradient(135deg, #a78bfa, #60a5fa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 30px;
+}
+.about-text p {
+    color: var(--text-main);
+    font-size: 1.25rem;
+    line-height: 1.7;
+    margin-bottom: 24px;
+}
+.about-text p.muted {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+}
+
+/* --- FEATURES SECTION --- */
+.features { text-align: center; }
+.features-grid {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 60px;
+    margin-top: 60px;
+}
+.feature-dango {
+    width: 280px;
+    text-align: center;
+}
+.f-dango-circle {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    margin: 0 auto 30px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 4px solid;
+    transition: transform 0.3s;
+}
+.feature-dango:hover .f-dango-circle {
+    transform: translateY(-10px) scale(1.05);
+}
+.feature-dango:nth-child(1) .f-dango-circle { 
+    border-color: #60a5fa; 
+    background: rgba(96, 165, 250, 0.08); 
+} 
+.feature-dango:nth-child(1) .f-dango-circle svg { color: #60a5fa; }
+
+.feature-dango:nth-child(2) .f-dango-circle { 
+    border-color: #60a5fa; 
+    background: rgba(96, 165, 250, 0.08); 
+}
+.feature-dango:nth-child(2) .f-dango-circle svg { color: #60a5fa; }
+
+.feature-dango:nth-child(3) .f-dango-circle { 
+    border-color: #60a5fa; 
+    background: rgba(96, 165, 250, 0.08); 
+}
+.feature-dango:nth-child(3) .f-dango-circle svg { color: #60a5fa; }
+
+.f-dango-circle svg { width: 70px; height: 70px; opacity: 0.9; }
+.feature-dango h3 { font-size: 1.6rem; margin-bottom: 16px; color: #fff; }
+.feature-dango p { font-size: 1.05rem; color: var(--text-muted); line-height: 1.6; }
+
+/* --- COMMUNITY SECTION --- */
+.community-wrapper {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+}
+.community {
+    flex: 1;
+    align-items: center;
+    text-align: center;
+    min-height: 0;
+    justify-content: center;
+}
+.community .section-title {
+    background: linear-gradient(135deg, #a78bfa, #60a5fa, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.github-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, #a78bfa, #60a5fa);
+    color: #fff;
+    padding: 16px 36px;
+    border-radius: 100px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    text-decoration: none;
+    margin-top: 30px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.15); /* Resplandor blanco sutil */
+}
+.github-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 0 45px rgba(255, 255, 255, 0.25); /* Resplandor blanco fuerte */
+}
+
+/* --- FOOTER --- */
+footer {
+    height: 30vh;
+    min-height: 30vh;
+    background: rgba(0, 0, 0, 0.4);
+    border-top: 1px solid var(--panel-border);
+    padding: 0 64px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    backdrop-filter: blur(15px);
+    position: relative;
+    z-index: 10;
+}
+.footer-features {
+    display: flex;
+    gap: 32px;
+}
+.feature {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+.feature-icon {
+    display: flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px;
+}
+.footer-right {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+.footer-links {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+.footer-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+    display: flex;
+}
+.footer-links a:hover { color: #fff; }
+
+@media (max-width: 1024px) {
+    .hero, .about { flex-direction: column; text-align: center; gap: 40px; }
+    .hero-content, .about-text { max-width: 100%; }
+    .os-buttons { justify-content: center; }
+    .feature-large-card, .feature-large-card:nth-child(even) { flex-direction: column; text-align: center; gap: 30px; padding: 40px 24px; }
+    .f-large-icon { width: 120px; height: 120px; flex-basis: 120px; }
+    nav { padding: 16px 24px; }
+    section { padding: 100px 24px 60px 24px; }
+    footer { flex-direction: column; gap: 20px; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<div id="start-curtain">
+    <span>Click anywhere to start</span>
+</div>
+
+<canvas id="bg-canvas"></canvas>
+
+<nav id="navbar">
+    <a href="#home" class="logo">
+        <svg width="28" height="28" viewBox="0 0 100 100">
+            <line x1="20" y1="80" x2="80" y2="20" stroke="#fcd34d" stroke-width="6" stroke-linecap="round"/>
+            <circle cx="40" cy="60" r="14" fill="#a3e635"/>
+            <circle cx="55" cy="45" r="14" fill="#fefce8"/>
+            <circle cx="70" cy="30" r="14" fill="#fbcfe8"/>
+        </svg>
+        <span class="logo-text">
+            <span>DANGO</span>
+            <span>WORLD</span>
+        </span>
+    </a>
+    <div class="nav-links">
+        <a href="#home">Home</a>
+        <a href="#about">About</a>
+        <a href="#features">Features</a>
+        <a href="#community">Community</a>
+        <a href="/play" style="color: var(--primary);">Play Now</a>
+    </div>
+</nav>
+
+<section id="home" class="hero">
+    <div class="hero-content">
+        <h1 class="parallax" data-speed="0.1">Explore the Cosmos with Your Softest Friends!</h1>
+        <p class="subtitle parallax" data-speed="0.05">
+            <strong>Dango World:</strong> The Ultimate Multiplatform Space Adventure.<br>
+            Play in your browser or download for desktop!
+        </p>
+        
+        <div class="parallax" data-speed="0.08">
+            <a href="/play" class="play-btn">
+                PLAY NOW (WEB VERSION)
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </a>
+        </div>
+
+        <div class="download-section parallax" data-speed="0.04">
+            <div class="download-divider">OR DOWNLOAD FOR DESKTOP</div>
+            <div class="os-buttons">
+                <a href="#" class="os-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+                    <span>DOWNLOAD FOR<br><small>WINDOWS (.exe)</small></span>
+                </a>
+                <a href="#" class="os-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10c5.524 0 10-4.477 10-10S17.524 2 12 2zm3.17 13.914c-.114.303-.525 1.524.127 3.176 0 0-1.008.322-3.301-1.23-.957.266-1.983.399-3.003.404-1.02-.005-2.047-.138-3.006-.404-2.291 1.552-3.297 1.23-3.297 1.23-.653-1.653-.242-2.874-.118-3.176-.77-.84-1.235-1.911-1.235-3.221 0-4.609 2.807-5.624 5.479-5.921-.43-.372-.823-1.102-.823-2.222V4.257c0-.319-.192-.694-.801-.576C4.032 5.27 0 9.767 0 15.067 0 21.694 5.373 27.067 12 27.067s12-5.373 12-12c0-5.3-4.032-9.797-8.798-11.386z" transform="translate(0 -2) scale(0.9)"/></svg>
+                    <span>DOWNLOAD FOR<br><small>MACOS (.dmg)</small></span>
+                </a>
+                <a href="#" class="os-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M11.96 0C5.353 0 0 5.353 0 11.96s5.353 11.96 11.96 11.96 11.96-5.353 11.96-11.96S18.567 0 11.96 0z" fill="none"/><path d="M11.5 16.4c-1.3 0-2.4-.7-2.9-1.7-.5 1-1.6 1.7-2.9 1.7-1.7 0-3-1.3-3-3s1.3-3 3-3c1.3 0 2.4.7 2.9 1.7.5-1 1.6-1.7 2.9-1.7 1.7 0 3 1.3 3 3s-1.3 3-3 3zm0-5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM5.7 11.4c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm11.6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-5.8 5.1c1.3 0 2.4.7 2.9 1.7.5-1 1.6-1.7 2.9-1.7 1.7 0 3 1.3 3 3s-1.3 3-3 3c-1.3 0-2.4-.7-2.9-1.7-.5 1-1.6 1.7-2.9 1.7-1.7 0-3-1.3-3-3s1.3-3 3-3z"/></svg>
+                    <span>DOWNLOAD FOR<br><small>LINUX (.tar.gz)</small></span>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="hero-image-container parallax" data-speed="-0.15">
+        <img src="/static/img/hero.jpg" alt="Dango World Characters in Space" class="hero-image">
+    </div>
+</section>
+
+<section id="about" class="about">
+    <div class="about-glass parallax" data-speed="0.12">
+        <h2 class="section-title">What is Dango World?</h2>
+        <div class="about-text">
+            <p>
+                Dango World is an ultra-smooth, physics-based multiplayer sandbox. Connect with friends and bounce around the cosmos using our custom soft-body physics engine! 
+                Every collision, jump, and squish is calculated in real-time.
+            </p>
+            <p class="muted">
+                Whether you are playing on your browser using HTML5 Canvas or directly on your desktop via the natively compiled Python engine, you'll experience pixel-perfect synchronization and the exact same adorable aesthetics. There is no central game server restricting your movement; host it yourself with a single script and invite your friends.
+            </p>
+            <p class="muted">
+                Explore unique planets, discover hidden easter eggs, and customize your Dango with an array of colors and hats (coming soon!).
+            </p>
+        </div>
+    </div>
+</section>
+
+<section id="features" class="features">
+    <h2 class="section-title parallax" data-speed="0.05">Main Features</h2>
+    <div class="features-grid">
+        <div class="feature-dango parallax" data-speed="0.08">
+            <div class="f-dango-circle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </div>
+            <h3>Cross-Play</h3>
+            <p>Seamlessly connect Desktop and Web players with ultra-low latency WebSockets. Play anywhere.</p>
+        </div>
+
+        <div class="feature-dango parallax" data-speed="0.12">
+            <div class="f-dango-circle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+            </div>
+            <h3>Open Source</h3>
+            <p>Built with Python and aiohttp. Host your own server instantly and mod the physics engine.</p>
+        </div>
+
+        <div class="feature-dango parallax" data-speed="0.06">
+            <div class="f-dango-circle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M13 8H7"/><path d="M17 12H7"/></svg>
+            </div>
+            <h3>Live Chat</h3>
+            <p>Communicate in real-time with other dangos. Your messages appear right above your soft head!</p>
+        </div>
+    </div>
+</section>
+
+<div class="community-wrapper">
+    <section id="community" class="community">
+        <h2 class="section-title parallax" data-speed="0.1">Join the Development</h2>
+        <p class="subtitle parallax" style="max-width: 800px; margin: 0 auto 20px auto; font-size: 1.15rem;" data-speed="0.08">
+            Dango World is built by passionate developers for passionate gamers. Whether you want to fix a bug, suggest a brilliant new feature, or just hang out and chat about vector mathematics and soft-body physics, we'd love to have you onboard! Check out the official repository to see the inner workings of the game.
+        </p>
+        
+        <a href="https://github.com/CdeCasurpie/dango" target="_blank" class="github-btn parallax" data-speed="0.12">
+            Ponle una estrellita a mi Github
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+        </a>
+    </section>
+
+    <footer>
+        <div class="footer-author" style="display:flex; align-items:center; gap:12px; font-weight:600;">
+            <div style="font-size:24px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></div>
+            <div>
+                <div>Developed by <strong>Cesar Perales</strong></div>
+                <div style="font-size:0.8rem; color:var(--text-muted);">© 2026 Dango World Studios</div>
+            </div>
+        </div>
+        <div class="footer-features">
+            <div class="feature"><div class="feature-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div> MULTIPLAYER FUN</div>
+            <div class="feature"><div class="feature-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg></div> CUSTOMIZE YOUR DANGO</div>
+            <div class="feature"><div class="feature-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div> EXPLORE UNIQUE PLANETS</div>
+        </div>
+        
+        <div class="footer-right">
+            <div class="footer-links">
+                <a href="https://github.com/CdeCasurpie" target="_blank" title="GitHub">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                </a>
+            </div>
+            <span>© 2026 Dango World Studios</span>
+            <span>Built with Python & Web Tech</span>
+        </div>
+    </footer>
+</div>
+
+<audio id="bgm" src="/static/bgm.mp3" loop></audio>
+
+<script>
+// Start Curtain & Audio
+document.getElementById('start-curtain').addEventListener('click', function() {
+    const audio = document.getElementById('bgm');
+    audio.volume = 0.5;
+    if(audio.paused) audio.play();
+    
+    // Hide curtain
+    this.classList.add('curtain-hidden');
+}, { once: true });
+
+// Canvas Background Animation
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let w, h;
+
+function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+const stars = Array.from({length: 150}, () => ({
+    x: Math.random() * 2000,
+    y: Math.random() * 2000,
+    size: Math.random() * 1.5 + 0.5,
+    speed: Math.random() * 0.2 + 0.05
+}));
+
+let timeY = 0;
+let scrollY = window.scrollY;
+
+window.addEventListener('scroll', () => {
+    scrollY = window.scrollY;
+});
+
+function draw() {
+    ctx.fillStyle = '#060612'; // Dark space bg
+    ctx.fillRect(0, 0, w, h);
+    
+    // Subtle galaxy gradient
+    const grd = ctx.createRadialGradient(w*0.8, h*0.3, 0, w*0.8, h*0.3, h*0.8);
+    grd.addColorStop(0, 'rgba(40, 100, 180, 0.15)');
+    grd.addColorStop(0.5, 'rgba(120, 40, 180, 0.05)');
+    grd.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, w, h);
+
+    // Subtle grid moving slowly + scroll parallax
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+    ctx.lineWidth = 1;
+    const grid_s = 60;
+    const camY = timeY + scrollY * 0.3; // Parallax connection
+    const camX = timeY * 0.5;
+    const off_y = camY % grid_s;
+    const off_x = camX % grid_s;
+    
+    ctx.beginPath();
+    for(let i=-1; i<w/grid_s+2; i++) {
+        ctx.moveTo(i*grid_s + off_x, 0);
+        ctx.lineTo(i*grid_s + off_x, h);
+    }
+    for(let i=-1; i<h/grid_s+2; i++) {
+        ctx.moveTo(0, i*grid_s + off_y);
+        ctx.lineTo(w, i*grid_s + off_y);
+    }
+    ctx.stroke();
+
+    // Stars
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    for(let s of stars) {
+        let sx = (s.x + camX * s.speed) % w;
+        let sy = (s.y + camY * s.speed) % h;
+        if (sx < 0) sx += w;
+        if (sy < 0) sy += h;
+        ctx.fillRect(sx, sy, s.size, s.size);
+    }
+
+    timeY += 0.3; // Constant very slow movement
+    requestAnimationFrame(draw);
+}
+draw();
+
+// DOM Parallax Elements
+document.addEventListener("DOMContentLoaded", () => {
+    const parallaxElements = document.querySelectorAll(".parallax");
+    
+    function updateParallax() {
+        const scrolled = window.scrollY;
+        parallaxElements.forEach(el => {
+            const speed = parseFloat(el.getAttribute("data-speed"));
+            const rect = el.getBoundingClientRect();
+            // Calculate distance from center of screen to make the effect natural
+            const centerOffset = (rect.top + rect.height/2) - (window.innerHeight/2);
+            
+            // Apply transform
+            const yOffset = centerOffset * speed;
+            el.style.transform = `translateY(${yOffset}px)`;
+        });
+    }
+
+    window.addEventListener("scroll", updateParallax);
+    updateParallax(); // Initial call
+});
+
+// Smooth scroll for nav links
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        document.querySelector(this.getAttribute('href')).scrollIntoView({
+            behavior: 'smooth'
+        });
+    });
+});
+</script>
+</body>
+</html>
