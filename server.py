@@ -542,13 +542,13 @@ function drawSlime(p, isMe) {
         // Ojo izquierdo
         ctx.beginPath();
         ctx.moveTo(-eyeSpacing + lookX, eyeY - actualEyeH/2 + lookY);
-        ctx.lineTo(-eyeSpacing + lookX, eyeY + actualEyeH/2 + lookY);
+        ctx.lineTo(-eyeSpacing + lookX, eyeY + actualEyeH * 0.8 + lookY);
         ctx.stroke();
 
         // Ojo derecho
         ctx.beginPath();
         ctx.moveTo(eyeSpacing + lookX, eyeY - actualEyeH/2 + lookY);
-        ctx.lineTo(eyeSpacing + lookX, eyeY + actualEyeH/2 + lookY);
+        ctx.lineTo(eyeSpacing + lookX, eyeY + actualEyeH * 0.8 + lookY);
         ctx.stroke();
     } else {
         // Cerrado → línea horizontal
