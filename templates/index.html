@@ -398,13 +398,44 @@ footer {
 
 @media (max-width: 1024px) {
     .hero, .about { flex-direction: column; text-align: center; gap: 40px; }
-    .hero-content, .about-text { max-width: 100%; }
+    .hero-content, .about-text, .about-glass { max-width: 100%; text-align: center; }
     .os-buttons { justify-content: center; }
-    .feature-large-card, .feature-large-card:nth-child(even) { flex-direction: column; text-align: center; gap: 30px; padding: 40px 24px; }
-    .f-large-icon { width: 120px; height: 120px; flex-basis: 120px; }
+    .features-grid { flex-direction: column; align-items: center; gap: 50px; }
     nav { padding: 16px 24px; }
     section { padding: 100px 24px 60px 24px; }
-    footer { flex-direction: column; gap: 20px; text-align: center; }
+    .community-wrapper { height: auto; display: block; scroll-snap-align: start; }
+    footer { flex-direction: column; gap: 30px; text-align: center; height: auto; min-height: auto; padding: 40px 24px; }
+    .footer-features { flex-direction: column; gap: 16px; align-items: center; }
+    .footer-author { flex-direction: column; text-align: center; }
+    .footer-right { align-items: center; gap: 10px; }
+}
+
+@media (max-width: 768px) {
+    /* Disable scroll snap on mobile as it breaks long scrolling content */
+    html { scroll-snap-type: none; }
+    section { min-height: auto; height: auto; padding: 100px 20px 60px 20px; scroll-snap-align: none; }
+    
+    /* Typography Scaling */
+    .hero-content h1 { font-size: 3rem; margin-bottom: 16px; }
+    .section-title { font-size: 2.5rem; line-height: 1.2; margin-bottom: 20px; }
+    .hero-content p { font-size: 1.1rem; margin-bottom: 24px; }
+    .about-text p { font-size: 1.1rem; line-height: 1.5; }
+    .subtitle { font-size: 1rem !important; margin-bottom: 20px !important; }
+    
+    /* Elements */
+    .hero-image img { max-width: 280px; }
+    .os-buttons { flex-direction: column; gap: 12px; }
+    .os-btn { width: 100%; justify-content: center; }
+    .play-btn { width: 100%; justify-content: center; margin-bottom: 24px; font-size: 1rem; }
+    .github-btn { width: 100%; justify-content: center; font-size: 1rem; padding: 14px 20px; flex-direction: row; flex-wrap: wrap; text-align: center; gap: 8px; }
+    .github-btn svg { width: 20px; height: 20px; }
+    
+    /* Adjust specific sections */
+    .nav-links { display: none; } /* Hide standard links to prevent overlap with logo */
+    .f-dango-circle { width: 160px; height: 160px; }
+    .f-dango-circle svg { width: 60px; height: 60px; }
+    .feature-dango h3 { font-size: 1.4rem; }
+    .feature-dango p { font-size: 0.95rem; }
 }
 </style>
 </head>

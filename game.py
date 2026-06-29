@@ -8,6 +8,7 @@ import random
 import time
 import colorsys
 import array
+import sys
 
 # ══════════════════════════════════════════════
 #  CONFIGURACIÓN
@@ -192,8 +193,9 @@ async def main():
     async def network_task():
         nonlocal my_id, state
         session = aiohttp.ClientSession()
+        ws_url = 'wss://dango-rf5x.onrender.com/ws' if '--online' in sys.argv else 'ws://localhost:8000/ws'
         try:
-            async with session.ws_connect('ws://localhost:8000/ws') as ws:
+            async with session.ws_connect(ws_url) as ws:
                 async def receiver():
                     nonlocal my_id
                     async for msg in ws:
