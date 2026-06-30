@@ -264,6 +264,7 @@ if __name__ == "__main__":
     app.router.add_get('/play', play)
     app.router.add_get('/ws', ws_handler)
     app.router.add_static('/static', 'static')
+    app.router.add_static('/assets', 'assets')
     
     app.on_startup.append(start_background_tasks)
     app.on_cleanup.append(cleanup_background_tasks)
