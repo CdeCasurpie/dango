@@ -12,6 +12,8 @@ import array
 import sys
 import base64
 import subprocess
+import ssl
+import certifi
 
 # ══════════════════════════════════════════════
 #  CONFIGURACIÓN
@@ -199,7 +201,9 @@ async def main():
 
     async def network_task():
         nonlocal my_id, state, level_buffer, level_progress, level_downloaded
-        session = aiohttp.ClientSession()
+        ssl_context = ssl.create_default_context(cafile=certifi.where())
+        connector = aiohttp.TCPConnector(ssl=ssl_context)
+        session = aiohttp.ClientSession(connector=connector)
         # Default: online. Use `--offline` to connect to local server.
         ws_url = 'ws://localhost:8000/ws' if '--offline' in sys.argv else 'wss://dango-rf5x.onrender.com/ws'
         
