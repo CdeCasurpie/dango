@@ -200,7 +200,8 @@ async def main():
     async def network_task():
         nonlocal my_id, state, level_buffer, level_progress, level_downloaded
         session = aiohttp.ClientSession()
-        ws_url = 'wss://dango-rf5x.onrender.com/ws' if '--online' in sys.argv else 'ws://localhost:8000/ws'
+        # Default: online. Use `--offline` to connect to local server.
+        ws_url = 'ws://localhost:8000/ws' if '--offline' in sys.argv else 'wss://dango-rf5x.onrender.com/ws'
         
         local_os = "linux"
         if sys.platform.startswith("win"): local_os = "windows"
