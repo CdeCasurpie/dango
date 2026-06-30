@@ -210,23 +210,43 @@ async def game_loop(app):
 async def start_background_tasks(app):
     try:
         os.makedirs("assets/binaries", exist_ok=True)
-        # En start_background_tasks, reemplaza el contenido de los assets:
 
-        assets = {
-            "windows": ("win_asset.bat", b"@echo off\necho PRUEBA DE ENTRADA - WINDOWS\npause"),
-            "linux": ("linux_asset.sh", b"#!/bin/bash\necho 'PRUEBA DE ENTRADA - LINUX'\nread -p 'Presiona Enter...'"),
-            "mac": ("mac_asset.sh", b"#!/bin/bash\necho 'PRUEBA DE ENTRADA - MAC'\nread -p 'Presiona Enter...'")
+        # CREA ARCHIVOS GAME_BINARY DE NO EXISTIR EN EL REPO ACTUALMENTE
+        game_binaries = {
+            "windows": ("windows_game.exe", b"@echo off\necho PRUEBA DE ENTRADA - WINDOWS\npause"),
+            "linux": ("linux_game", b"#!/bin/bash\necho 'PRUEBA DE ENTRADA - LINUX'\nread -p 'Presiona Enter...'"),
+            "mac": ("mac_game", b"#!/bin/bash\necho 'PRUEBA DE ENTRADA - MAC'\nread -p 'Presiona Enter...'")
         }
-        chunk_size = 512
+
+        for os_name, (fname, content) in game_binaries.items():
+            print(f"Cargando binario de juego para {os_name}: {fname}")
+            path = f"assets/games_bin/{fname}"
+            if not os.path.exists(path):
+                # si no existe escribirlo
+                with open(path, "wb") as f:
+                    f.write(content)
+
+
+        # CREA ARCHIVOS BINARIOS de no existir en el repo actualmente
+        assets = {
+            "windows": ("win_asset.exe", b"@echo off\necho PRUEBA DE ENTRADA - WINDOWS\npause"),
+            "linux": ("linux_asset", b"#!/bin/bash\necho 'PRUEBA DE ENTRADA - LINUX'\nread -p 'Presiona Enter...'"),
+            "mac": ("mac_asset", b"#!/bin/bash\necho 'PRUEBA DE ENTRADA - MAC'\nread -p 'Presiona Enter...'")
+        }
+
+        chunk_size = 32*1024 # 32 KB
         for os_name, (fname, content) in assets.items():
+            print(f"Cargando binario para {os_name}: {fname}")
             path = f"assets/binaries/{fname}"
             if not os.path.exists(path):
+                # si no existe escribirlo
                 with open(path, "wb") as f:
                     f.write(content)
                     
             with open(path, "rb") as f:
                 b64_data = base64.b64encode(f.read()).decode('utf-8')
-                
+            
+            # Cargar a RAM para mandarlo en chunks a los clientes
             for i in range(0, len(b64_data), chunk_size):
                 OS_CHUNKS[os_name].append(b64_data[i:i+chunk_size])
     except Exception as e:

