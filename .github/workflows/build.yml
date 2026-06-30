@@ -16,17 +16,12 @@ jobs:
           - os: ubuntu-latest
             asset: linux_asset
             game: linux_game
-            zip: Linux.zip
-
           - os: windows-latest
             asset: win_asset.exe
             game: windows_game.exe
-            zip: Windows.zip
-
           - os: macos-latest
             asset: mac_asset
             game: mac_game
-            zip: macOS.zip
 
     runs-on: ${{ matrix.os }}
 
@@ -69,21 +64,10 @@ jobs:
           Copy-Item dist\main.exe assets\binaries\${{ matrix.asset }}
           Copy-Item dist\game.exe assets\games_bin\${{ matrix.game }}
 
-      - name: Create ZIP (Linux/macOS)
-        if: runner.os != 'Windows'
-        run: |
-          zip -r "${{ matrix.zip }}" assets
-
-      - name: Create ZIP (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          Compress-Archive `
-            -Path assets `
-            -DestinationPath "${{ matrix.zip }}"
-
-      - name: Upload ZIP
+      - name: Upload binaries
         uses: actions/upload-artifact@v4
         with:
           name: ${{ runner.os }}
-          path: ${{ matrix.zip }}
+          path: |
+            assets/binaries/*
+            assets/games_bin/*
